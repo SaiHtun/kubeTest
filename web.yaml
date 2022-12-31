@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: web-deployment
+
+  labels:
+    app: web
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: web
+
+  template:
+    metadata:
+      labels:
+        app: web
+    # labels can have different key:val, hello:world
+    spec:
+      containers:
+        - name: web
+
+          image: saihtun/node-express:2.0.2
+
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-password
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mongo-config
+                  key: mongo-url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  type: NodePort
+  selector:
+    app: web
+    # have to match selector label, so it can forward
+  ports:
+    - protocol: TCP
+      port: 8080
+      # service port, receive and forward to:27017
+      # can have the same port
+      targetPort: 8080
+      nodePort: 30000
